@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: adservice
+spec:
+  hosts:
+  - "adservice.default.svc.cluster.local"
+  http:
+  - match:
+      - sourceLabels:
+          app: "frontend"
+    fault:
+      abort:
+        percentage:
+          value: 100.0
+        httpStatus: 500
+    route:
+    - destination:
+        host: adservice
+        port:
+          number: 9555
+  - route:
+    - destination:
+        host: adservice
+        port:
+          number: 9555
