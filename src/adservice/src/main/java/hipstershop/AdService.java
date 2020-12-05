@@ -51,6 +51,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class AdService {
   private static final Logger logger = Logger.getLogger(AdService.class.getName());
@@ -62,6 +64,8 @@ public class AdService {
   private HealthStatusManager healthMgr;
 
   static final AdService service = new AdService();
+
+  private String ip_addr;
   private void start() throws IOException {
     int port = Integer.parseInt(System.getenv("PORT"));
     healthMgr = new HealthStatusManager();
@@ -69,6 +73,14 @@ public class AdService {
     server = ServerBuilder.forPort(port).addService(new AdServiceImpl())
         .addService(healthMgr.getHealthService()).build().start();
     logger.info("Ad Service started, listening on " + port);
+    InetAddress ip;
+    try {
+        ip = InetAddress.getLocalHost();
+        ip_addr = ip.getHostAddress();
+    }
+    catch (UnknownHostException e) {
+        ip_addr = "0.0.0.0";
+    }
     Runtime.getRuntime()
         .addShutdownHook(
             new Thread() {
@@ -111,6 +123,7 @@ public class AdService {
       try (Scope scope = spanBuilder.startScopedSpan()) {
         Span span = tracer.getCurrentSpan();
         span.putAttribute("method", AttributeValue.stringAttributeValue("getAds"));
+        span.putAttribute("ip", AttributeValue.stringAttributeValue(service.ip_addr));
         List<Ad> ads = new ArrayList<>();
         logger.info("received ad request (context_words=" + req.getContextKeysCount() + ")");
         if (req.getContextKeysCount() > 0) {

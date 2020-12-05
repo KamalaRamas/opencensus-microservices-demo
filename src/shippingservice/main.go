@@ -19,6 +19,7 @@ import (
 	"log"
 	"net"
 	"os"
+  "errors"
 	"time"
 
 	"cloud.google.com/go/profiler"
@@ -78,6 +79,7 @@ func (s *server) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*
 func (s *server) GetQuote(ctx context.Context, in *pb.GetQuoteRequest) (*pb.GetQuoteResponse, error) {
 	log.Printf("[GetQuote] received request")
 	defer log.Printf("[GetQuote] completed request")
+  new_err := errors.New("Always return error")
 
 	// 1. Our quote system requires the total number of items to be shipped.
 	count := 0
@@ -94,7 +96,7 @@ func (s *server) GetQuote(ctx context.Context, in *pb.GetQuoteRequest) (*pb.GetQ
 			CurrencyCode: "USD",
 			Units:        int64(quote.Dollars),
 			Nanos:        int32(quote.Cents * 10000000)},
-	}, nil
+	}, new_err
 
 }
 

@@ -350,7 +350,17 @@ func (fe *frontendServer) chooseAd(ctx context.Context, log logrus.FieldLogger) 
 	ads, err := fe.getAd(ctx)
 	if err != nil {
 		log.WithField("error", err).Warn("failed to retrieve ads")
-		return nil
+		price := &pb.Money{
+			CurrencyCode: "USD",
+			Units:        1,
+			Nanos:        0,
+		}
+    price, _ = fe.getShippingQuote(ctx, nil, "USD")
+		defaultAd := &pb.Ad{
+			RedirectUrl: "https://www.google.com",
+			Text:        fmt.Sprintf("default product, price: %d", price.Units),
+		}
+		return defaultAd
 	}
 	return ads[rand.Intn(len(ads))]
 }
