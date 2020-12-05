@@ -1,0 +1,150 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: jaeger
+    name: jaeger
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: jaeger
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: jaeger
+      spec:
+        containers:
+        - env:
+          - name: COLLECTOR_ZIPKIN_HTTP_PORT
+            value: "9411"
+          image: jaeger_self
+          imagePullPolicy: Never
+          livenessProbe:
+            failureThreshold: 3
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 16686
+            timeoutSeconds: 1
+          name: jaeger
+          ports:
+          - containerPort: 9411
+            name: zipkin
+            protocol: TCP
+          - containerPort: 5775
+            name: zipkin-thrift
+            protocol: UDP
+          - containerPort: 6831
+            name: thrift
+            protocol: UDP
+          - containerPort: 6832
+            name: bin-thrift
+            protocol: UDP
+          - containerPort: 5778
+            name: config
+            protocol: TCP
+          - containerPort: 16686
+            name: frontend
+            protocol: TCP
+          - containerPort: 14268
+            name: thrift-direct
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            periodSeconds: 5
+            successThreshold: 1
+            tcpSocket:
+              port: 16686
+            timeoutSeconds: 1
+          resources:
+            limits:
+              cpu: 125m
+              memory: 256Mi
+            requests:
+              cpu: 70m
+              memory: 200Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /data
+            name: jaeger-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - emptyDir: {}
+          name: jaeger-data
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: jaeger
+  spec:
+    ports:
+    - name: zipkin
+      port: 9411
+      protocol: TCP
+      targetPort: 9411
+    - name: zipkin-thrift
+      port: 5775
+      protocol: UDP
+      targetPort: 5775
+    - name: jaeger-thrift
+      port: 6831
+      protocol: UDP
+      targetPort: 6831
+    - name: jaeger-binary-thrift
+      port: 6832
+      protocol: UDP
+      targetPort: 6832
+    - name: config
+      port: 5778
+      protocol: TCP
+      targetPort: 5778
+    - name: frontend
+      port: 16686
+      protocol: TCP
+      targetPort: 16686
+    - name: jaeger-thrift-direct
+      port: 14268
+      protocol: TCP
+      targetPort: 14268
+    selector:
+      app: jaeger
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: jaeger-external
+  spec:
+    externalTrafficPolicy: Cluster
+    ports:
+    - name: http
+      port: 16686
+      protocol: TCP
+      targetPort: 16686
+    selector:
+      app: jaeger
+    sessionAffinity: None
+    type: LoadBalancer
+  status:
+    loadBalancer: {}
+kind: List
+metadata: {}

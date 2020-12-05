@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: loadgenerator
+  name: loadgenerator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadgenerator
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: loadgenerator
+    spec:
+      containers:
+      - env:
+        - name: FRONTEND_ADDR
+          value: frontend:80
+        - name: USERS
+          value: "10"
+        image: gcr.io/opencensus-microservices-demo/loadgenerator
+        name: main
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 300m
+            memory: 256Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - set -x;  apk add --no-cache curl; until timeout -t 2 curl -f "http://${FRONTEND_ADDR}";
+          do echo "waiting for http://${FRONTEND_ADDR}"; sleep 2; done;
+        env:
+        - name: FRONTEND_ADDR
+          value: frontend:80
+        image: alpine:3.6
+        imagePullPolicy: IfNotPresent
+        name: wait-frontend
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 5
+status: {}
